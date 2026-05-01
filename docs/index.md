@@ -8,6 +8,7 @@ A Go CLI tool that fetches expenses from a Splitwise household group, maps each 
 - [Configuration](configuration.md) — full reference for `config.yaml` and `.env`
 - [Card mapping](card-mapping.md) — how the tool resolves which card belongs to each expense
 - [Package reference](packages.md) — internal API of each Go package
+- [Testing](testing.md) — how to run the tests and what is covered
 
 ## Quick start
 
