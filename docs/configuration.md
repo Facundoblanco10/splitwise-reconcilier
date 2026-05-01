@@ -6,8 +6,6 @@ Run `make setup` (or `bash setup.sh`) for an interactive prompt that creates bot
 
 ---
 
----
-
 ## `.env`
 
 Contains only the Splitwise API key. Excluded from the repository via `.gitignore`.
@@ -53,7 +51,7 @@ The `id` field in the response is your user ID.
 ```yaml
 members:
   - splitwise_id: 111       # numeric Splitwise user ID
-    default_entity: SCOTIA  # bank entity used when no tag or category rule matches
+    default_entity: SCOTIA  # bank entity used when no [ENTITY] tag is present
   - splitwise_id: 222
     default_entity: SANTANDER
 ```

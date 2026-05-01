@@ -26,9 +26,12 @@ In Splitwise, the **Notes** field of an expense accepts free text. If it contain
 
 the tool uses `ENTITY:PERSON` as the card key directly. The person segment can be a custom alias or the user's actual first name — both are treated identically.
 
-If the person segment is **empty** (`[ENTITY:]`), it is auto-filled with the first name of whoever paid the expense:
+The tag is **case-insensitive** — `[scotia]`, `[Scotia]`, and `[SCOTIA]` all produce the same result. The entity is always normalized to uppercase internally.
+
+If the person segment is **omitted or empty**, it is auto-filled with the first name of whoever paid the expense:
 
 ```
+[SCOTIA]    →   SCOTIA:John   (if John paid)
 [SCOTIA:]   →   SCOTIA:John   (if John paid)
 ```
 
@@ -39,11 +42,12 @@ If the person segment is **empty** (`[ENTITY:]`), it is auto-filled with the fir
 [VISA:John] weekly groceries       →  VISA:John
 appliance installments [AMEX:Jane] →  AMEX:Jane
 [SANTANDER:]                       →  SANTANDER:<payer first name>
+[itau-d]                           →  ITAU-D:<payer first name>
 ```
 
-The tag can appear anywhere in the Notes field. If multiple `[X:Y]` tags are present, the first one wins.
+The tag can appear anywhere in the Notes field. If multiple tags are present, the first one wins.
 
-**Regex used:** `\[([A-Z0-9_]+):([^\]]*)\]`
+**Regex used:** `(?i)\[([A-Z0-9_-]+)(?::([^\]]*))?\]`
 
 ### 2. Payer's default entity
 
@@ -56,7 +60,7 @@ members:
     default_entity: SANTANDER
 ```
 
-If no tag and no category rule match, the tool looks at who paid the expense (`paid_share > 0`) and checks whether that user has a `default_entity` configured. If so, the card is `DEFAULT_ENTITY:PAYER_FIRST_NAME`.
+If no tag is present, the tool looks at who paid the expense (`paid_share > 0`) and checks whether that user has a `default_entity` configured. If so, the card is `DEFAULT_ENTITY:PAYER_FIRST_NAME`.
 
 This is the fallback for expenses without any tag or matching category rule, as long as the payer is configured.
 
@@ -106,7 +110,6 @@ Given this expense:
 
 | Step | Result |
 |------|--------|
-| Override by ID | not found |
 | Tag in Notes | `[SCOTIA:FATI]` found → `SCOTIA:FATI` ✓ |
 | Assigned card | `SCOTIA:FATI` |
 | My share | 5000.00 |

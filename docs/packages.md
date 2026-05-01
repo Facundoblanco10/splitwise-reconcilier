@@ -215,11 +215,11 @@ The two share columns use the actual Splitwise display names of the users (e.g. 
 
 #### "Summary by Card"
 
-Two columns: card display name and the sum of `MyShare` for all expenses assigned to it, labelled with `myName`. Order follows the `cards` list in `config.yaml`; `UNASSIGNED` is always last.
+One row per card. Columns: card display name, sum of `MyShare` (labelled `myName`), sum of `TheirShare` (labelled `partnerName`), and combined total. Cards are sorted alphabetically; `UNASSIGNED` is always last.
 
 #### "Unassigned"
 
-Same columns as the detail sheet, minus the partner share and card columns (irrelevant here). The share column is labelled with `myName`. Only includes expenses where `Card == "UNASSIGNED"`.
+Same columns as the detail sheet, minus the card column. Only includes expenses where `Card == "UNASSIGNED"`.
 
 ---
 
@@ -227,6 +227,6 @@ Same columns as the detail sheet, minus the partner share and card columns (irre
 
 | Element | Style |
 |---------|-------|
-| Headers on all sheets | Bold + light blue background (`#D9E1F2`) |
+| Headers on all sheets | Bold + dark red background (`#B3051C`) |
 | Monetary columns | `#,##0.00` format (NumFmt 7) |
 | Column widths | Set per content type (dates: 12, descriptions: 35, etc.) |

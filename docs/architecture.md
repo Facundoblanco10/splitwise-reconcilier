@@ -36,6 +36,8 @@ All packages live under `internal/` so they cannot be imported from outside the 
        │
        ├─► splitwise.Client.GetCurrentUser()   →  validates the API key
        │
+       ├─► splitwise.Client.GetGroup()         →  member list (names for column headers + card auto-fill)
+       │
        ├─► splitwise.Client.GetExpenses()      →  []Expense  (deleted ones filtered out)
        │
        ├─► mapping.Mapper.MapAll()             →  []MappedExpense  (with Card assigned)
