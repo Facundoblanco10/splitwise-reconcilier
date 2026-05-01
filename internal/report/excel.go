@@ -9,7 +9,7 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-func Generate(expenses []mapping.MappedExpense, cfg *mapping.Config, month time.Time, outputPath string) error {
+func Generate(expenses []mapping.MappedExpense, cfg *mapping.Config, month time.Time, outputPath, myName, partnerName string) error {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -28,13 +28,13 @@ func Generate(expenses []mapping.MappedExpense, cfg *mapping.Config, month time.
 		return fmt.Errorf("creating currency style: %w", err)
 	}
 
-	if err := buildDetailSheet(f, expenses, cfg, boldStyle, currencyStyle); err != nil {
+	if err := buildDetailSheet(f, expenses, cfg, boldStyle, currencyStyle, myName, partnerName); err != nil {
 		return err
 	}
-	if err := buildSummarySheet(f, expenses, cfg, boldStyle, currencyStyle); err != nil {
+	if err := buildSummarySheet(f, expenses, cfg, boldStyle, currencyStyle, myName); err != nil {
 		return err
 	}
-	if err := buildUnassignedSheet(f, expenses, cfg, boldStyle, currencyStyle); err != nil {
+	if err := buildUnassignedSheet(f, expenses, cfg, boldStyle, currencyStyle, myName); err != nil {
 		return err
 	}
 
@@ -44,11 +44,11 @@ func Generate(expenses []mapping.MappedExpense, cfg *mapping.Config, month time.
 	return f.SaveAs(outputPath)
 }
 
-func buildDetailSheet(f *excelize.File, expenses []mapping.MappedExpense, cfg *mapping.Config, boldStyle, currencyStyle int) error {
+func buildDetailSheet(f *excelize.File, expenses []mapping.MappedExpense, cfg *mapping.Config, boldStyle, currencyStyle int, myName, partnerName string) error {
 	sheet := "Gastos detallados"
 	f.NewSheet(sheet)
 
-	headers := []string{"Fecha", "Descripción", "Categoría", "Monto total", "Mi parte", "Parte pareja", "Tarjeta", "Expense ID", "Notes"}
+	headers := []string{"Fecha", "Descripción", "Categoría", "Monto total", myName, partnerName, "Tarjeta", "Expense ID", "Notes"}
 	for i, h := range headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		f.SetCellValue(sheet, cell, h)
@@ -83,7 +83,7 @@ func buildDetailSheet(f *excelize.File, expenses []mapping.MappedExpense, cfg *m
 	return nil
 }
 
-func buildSummarySheet(f *excelize.File, expenses []mapping.MappedExpense, cfg *mapping.Config, boldStyle, currencyStyle int) error {
+func buildSummarySheet(f *excelize.File, expenses []mapping.MappedExpense, cfg *mapping.Config, boldStyle, currencyStyle int, myName string) error {
 	sheet := "Resumen por tarjeta"
 	f.NewSheet(sheet)
 
@@ -92,7 +92,7 @@ func buildSummarySheet(f *excelize.File, expenses []mapping.MappedExpense, cfg *
 		totals[e.Card] += e.MyShare
 	}
 
-	headers := []string{"Tarjeta", "Total mi parte"}
+	headers := []string{"Tarjeta", myName}
 	for i, h := range headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		f.SetCellValue(sheet, cell, h)
@@ -113,11 +113,11 @@ func buildSummarySheet(f *excelize.File, expenses []mapping.MappedExpense, cfg *
 	return nil
 }
 
-func buildUnassignedSheet(f *excelize.File, expenses []mapping.MappedExpense, cfg *mapping.Config, boldStyle, currencyStyle int) error {
+func buildUnassignedSheet(f *excelize.File, expenses []mapping.MappedExpense, cfg *mapping.Config, boldStyle, currencyStyle int, myName string) error {
 	sheet := "Sin asignar"
 	f.NewSheet(sheet)
 
-	headers := []string{"Fecha", "Descripción", "Categoría", "Monto total", "Mi parte", "Expense ID", "Notes"}
+	headers := []string{"Fecha", "Descripción", "Categoría", "Monto total", myName, "Expense ID", "Notes"}
 	for i, h := range headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		f.SetCellValue(sheet, cell, h)

@@ -47,6 +47,26 @@ type Group struct {
 
 ---
 
+### `Client.GetGroup(groupID int) (*GroupDetail, error)`
+
+Calls `GET /get_group/:id`. Returns the group's member list, used to resolve user display names for the Excel column headers.
+
+```go
+type GroupDetail struct {
+    ID      int
+    Name    string
+    Members []GroupMember
+}
+
+type GroupMember struct {
+    ID        int
+    FirstName string
+    LastName  string
+}
+```
+
+---
+
 ### `Client.GetExpenses(groupID int, from, to time.Time) ([]Expense, error)`
 
 Calls `GET /get_expenses` with the following query params:
@@ -166,9 +186,11 @@ Generates the Excel file with three sheets.
 
 ---
 
-### `Generate(expenses []MappedExpense, cfg *Config, month time.Time, outputPath string) error`
+### `Generate(expenses []MappedExpense, cfg *Config, month time.Time, outputPath, myName, partnerName string) error`
 
 The package's single entry point. Creates the file at `outputPath` with the three sheets described below. Overwrites the file if it already exists.
+
+`myName` and `partnerName` are used as column headers in place of generic labels. They are resolved from the group members by `main.go` before calling this function.
 
 ---
 
@@ -184,19 +206,21 @@ One row per expense. Columns:
 | Descripción | `expense.Description` |
 | Categoría | `expense.Category.Name` |
 | Monto total | `expense.Cost` (float, `#,##0.00` format) |
-| Mi parte | `MappedExpense.MyShare` |
-| Parte pareja | `MappedExpense.TheirShare` |
+| `myName` | `MappedExpense.MyShare` |
+| `partnerName` | `MappedExpense.TheirShare` |
 | Tarjeta | Card display name |
 | Expense ID | `expense.ID` |
 | Notes | `expense.Details` (original Splitwise Notes field) |
 
+The two share columns use the actual Splitwise display names of the users (e.g. "Facundo Blanco" and "Ana García"), resolved at runtime from the group members.
+
 #### "Resumen por tarjeta" (Per-card summary)
 
-Two columns: card display name and the sum of `MyShare` across all expenses assigned to it. Order follows the `cards` list in `config.yaml`; `UNASSIGNED` is always last.
+Two columns: card display name and the sum of `MyShare` for all expenses assigned to it, labelled with `myName`. Order follows the `cards` list in `config.yaml`; `UNASSIGNED` is always last.
 
 #### "Sin asignar" (Unassigned)
 
-Same columns as the detail sheet, minus "Parte pareja" and "Tarjeta" (irrelevant here). Only includes expenses where `Card == "UNASSIGNED"`.
+Same columns as the detail sheet, minus the partner share and card columns (irrelevant here). The share column is labelled with `myName`. Only includes expenses where `Card == "UNASSIGNED"`.
 
 ---
 

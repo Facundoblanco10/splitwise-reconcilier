@@ -20,6 +20,22 @@ type Group struct {
 	Name string `json:"name"`
 }
 
+type GroupDetailResponse struct {
+	Group GroupDetail `json:"group"`
+}
+
+type GroupDetail struct {
+	ID      int           `json:"id"`
+	Name    string        `json:"name"`
+	Members []GroupMember `json:"members"`
+}
+
+type GroupMember struct {
+	ID        int    `json:"id"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+}
+
 type ExpensesResponse struct {
 	Expenses []Expense `json:"expenses"`
 }

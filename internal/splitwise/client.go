@@ -64,3 +64,11 @@ func (c *Client) GetGroups() ([]Group, error) {
 	}
 	return result.Groups, nil
 }
+
+func (c *Client) GetGroup(groupID int) (*GroupDetail, error) {
+	var result GroupDetailResponse
+	if err := c.get(fmt.Sprintf("/get_group/%d", groupID), &result); err != nil {
+		return nil, err
+	}
+	return &result.Group, nil
+}
