@@ -11,8 +11,8 @@ import (
 const Unassigned = "UNASSIGNED"
 
 // cardTagRe matches [ENTITY] or [ENTITY:PERSON] tags in the details field.
-// Group 1 = entity (e.g. SCOTIA), group 2 = person (e.g. FATI — absent or empty triggers auto-fill).
-var cardTagRe = regexp.MustCompile(`\[([A-Z0-9_]+)(?::([^\]]*))?\]`)
+// Group 1 = entity (e.g. SCOTIA, ITAU-D), group 2 = person (e.g. FATI — absent or empty triggers auto-fill).
+var cardTagRe = regexp.MustCompile(`\[([A-Z0-9_-]+)(?::([^\]]*))?\]`)
 
 type MappedExpense struct {
 	Expense    splitwise.Expense
