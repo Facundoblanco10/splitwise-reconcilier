@@ -45,10 +45,10 @@ func Generate(expenses []mapping.MappedExpense, cfg *mapping.Config, month time.
 }
 
 func buildDetailSheet(f *excelize.File, expenses []mapping.MappedExpense, cfg *mapping.Config, boldStyle, currencyStyle int, myName, partnerName string) error {
-	sheet := "Gastos detallados"
+	sheet := "Expense Detail"
 	f.NewSheet(sheet)
 
-	headers := []string{"Fecha", "Descripción", "Categoría", "Monto total", myName, partnerName, "Tarjeta", "Expense ID", "Notes"}
+	headers := []string{"Date", "Description", "Category", "Total Amount", myName, partnerName, "Card", "Expense ID", "Notes"}
 	for i, h := range headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		f.SetCellValue(sheet, cell, h)
@@ -84,7 +84,7 @@ func buildDetailSheet(f *excelize.File, expenses []mapping.MappedExpense, cfg *m
 }
 
 func buildSummarySheet(f *excelize.File, expenses []mapping.MappedExpense, cfg *mapping.Config, boldStyle, currencyStyle int, myName string) error {
-	sheet := "Resumen por tarjeta"
+	sheet := "Summary by Card"
 	f.NewSheet(sheet)
 
 	totals := map[string]float64{}
@@ -92,7 +92,7 @@ func buildSummarySheet(f *excelize.File, expenses []mapping.MappedExpense, cfg *
 		totals[e.Card] += e.MyShare
 	}
 
-	headers := []string{"Tarjeta", myName}
+	headers := []string{"Card", myName}
 	for i, h := range headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		f.SetCellValue(sheet, cell, h)
@@ -114,10 +114,10 @@ func buildSummarySheet(f *excelize.File, expenses []mapping.MappedExpense, cfg *
 }
 
 func buildUnassignedSheet(f *excelize.File, expenses []mapping.MappedExpense, cfg *mapping.Config, boldStyle, currencyStyle int, myName string) error {
-	sheet := "Sin asignar"
+	sheet := "Unassigned"
 	f.NewSheet(sheet)
 
-	headers := []string{"Fecha", "Descripción", "Categoría", "Monto total", myName, "Expense ID", "Notes"}
+	headers := []string{"Date", "Description", "Category", "Total Amount", myName, "Expense ID", "Notes"}
 	for i, h := range headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		f.SetCellValue(sheet, cell, h)

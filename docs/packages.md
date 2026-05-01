@@ -160,7 +160,7 @@ type MappedExpense struct {
 
 ### `FormatCardName(cfg *Config, cardID string) string`
 
-Converts an internal `cardID` to its display name for the Excel output. Returns `(ID)` in parentheses if the ID is not in the config. Returns `"Sin asignar"` for `UNASSIGNED`.
+Converts an internal `cardID` to its display name for the Excel output. Returns `(ID)` in parentheses if the ID is not in the config. Returns `"Unassigned"` for `UNASSIGNED`.
 
 ---
 
@@ -196,29 +196,29 @@ The package's single entry point. Creates the file at `outputPath` with the thre
 
 ### Generated sheets
 
-#### "Gastos detallados" (Expense detail)
+#### "Expense Detail"
 
 One row per expense. Columns:
 
 | Column | Content |
 |--------|---------|
-| Fecha | `YYYY-MM-DD` |
-| Descripción | `expense.Description` |
-| Categoría | `expense.Category.Name` |
-| Monto total | `expense.Cost` (float, `#,##0.00` format) |
+| Date | `YYYY-MM-DD` |
+| Description | `expense.Description` |
+| Category | `expense.Category.Name` |
+| Total Amount | `expense.Cost` (float, `#,##0.00` format) |
 | `myName` | `MappedExpense.MyShare` |
 | `partnerName` | `MappedExpense.TheirShare` |
-| Tarjeta | Card display name |
+| Card | Card display name |
 | Expense ID | `expense.ID` |
 | Notes | `expense.Details` (original Splitwise Notes field) |
 
-The two share columns use the actual Splitwise display names of the users (e.g. "Facundo Blanco" and "Ana García"), resolved at runtime from the group members.
+The two share columns use the actual Splitwise display names of the users (e.g. "John Smith" and "Jane Smith"), resolved at runtime from the group members.
 
-#### "Resumen por tarjeta" (Per-card summary)
+#### "Summary by Card"
 
 Two columns: card display name and the sum of `MyShare` for all expenses assigned to it, labelled with `myName`. Order follows the `cards` list in `config.yaml`; `UNASSIGNED` is always last.
 
-#### "Sin asignar" (Unassigned)
+#### "Unassigned"
 
 Same columns as the detail sheet, minus the partner share and card columns (irrelevant here). The share column is labelled with `myName`. Only includes expenses where `Card == "UNASSIGNED"`.
 

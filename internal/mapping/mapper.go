@@ -96,7 +96,7 @@ func FormatCardName(cfg *Config, cardID string) string {
 		}
 	}
 	if cardID == Unassigned {
-		return "Sin asignar"
+		return "Unassigned"
 	}
 	return fmt.Sprintf("(%s)", cardID)
 }

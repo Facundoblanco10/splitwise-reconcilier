@@ -20,7 +20,7 @@ cp config.example.yaml config.yaml  # add group_id and my_user_id
 go run ./cmd/reconciler --month 2026-04
 
 # 3. Report is saved to:
-#    output/reporte_2026-04.xlsx
+#    output/report_2026-04.xlsx
 ```
 
 ## Requirements

@@ -38,7 +38,7 @@ the tool extracts the ID and uses it as the card. The ID must be uppercase and m
 ```
 Weekly groceries [CARD:VISA_GALICIA]
 [CARD:AMEX] appliance installments
-work lunch [CARD:DEBITO_SANTANDER] reimbursable
+work lunch [CARD:DEBIT_SANTANDER] reimbursable
 ```
 
 The tag can appear anywhere in the field.
@@ -53,7 +53,7 @@ This mechanism is the most convenient way to assign cards expense by expense dir
 # config.yaml
 rules_by_category:
   Groceries: VISA_GALICIA
-  Utilities: DEBITO_SANTANDER
+  Utilities: DEBIT_SANTANDER
 ```
 
 The expense's category name (the `category.name` field from the API) is compared against the map keys. The match is exact and case-sensitive.
@@ -62,11 +62,11 @@ Ideal for expenses that always go to the same card by nature (e.g. groceries alw
 
 ### 4. Unassigned (`UNASSIGNED`)
 
-If none of the sources above produce a result, the expense is marked as `UNASSIGNED`. It appears in the **"Sin asignar"** sheet of the Excel for manual review.
+If none of the sources above produce a result, the expense is marked as `UNASSIGNED`. It appears in the **"Unassigned"** sheet of the Excel for manual review.
 
 ## Resolving unassigned expenses
 
-After generating the report, check the **"Sin asignar"** sheet. For each expense you have two options:
+After generating the report, check the **"Unassigned"** sheet. For each expense you have two options:
 
 **Option A — Tag in Splitwise (recommended):**
 Edit the expense in Splitwise and add `[CARD:YOUR_CARD_ID]` to the Notes field. Re-running the command will pick it up automatically.

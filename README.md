@@ -16,17 +16,17 @@ go run ./cmd/reconciler --month 2026-04
 [INFO] Authenticated as Facundo Blanco (fblanco@...)
 [INFO] Fetched 34 active expenses
 
-=== Resumen 2026-04 ===
-Total gastos procesados: 34
+=== Summary 2026-04 ===
+Total expenses processed: 34
 
-Por tarjeta (mi parte):
+Per card (my share):
   Visa Galicia               48320.00
   American Express           12750.50
-  Débito Santander            9100.00
+  Santander Debit             9100.00
 
-  Sin asignar (2 gastos):    3200.00
+  Unassigned (2 expenses):   3200.00
 
-Reporte generado: output/reporte_2026-04.xlsx
+Report saved to: output/report_2026-04.xlsx
 ```
 
 ## Stack

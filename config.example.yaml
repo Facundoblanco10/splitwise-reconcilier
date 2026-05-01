@@ -9,13 +9,13 @@ cards:
   - id: AMEX
     name: "American Express"
     closing_day: 5
-  - id: DEBITO_SANTANDER
-    name: "Débito Santander"
+  - id: DEBIT_SANTANDER
+    name: "Santander Debit"
     closing_day: null
 
 rules_by_category:
   Groceries: VISA_GALICIA
-  Utilities: DEBITO_SANTANDER
+  Utilities: DEBIT_SANTANDER
   Entertainment: AMEX
 
 overrides_by_expense_id:

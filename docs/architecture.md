@@ -40,7 +40,7 @@ All packages live under `internal/` so they cannot be imported from outside the 
        │
        ├─► mapping.Mapper.MapAll()             →  []MappedExpense  (with Card assigned)
        │
-       └─► report.Generate()                  →  output/reporte_YYYY-MM.xlsx
+       └─► report.Generate()                  →  output/report_YYYY-MM.xlsx
 ```
 
 ## Package responsibilities
