@@ -1,32 +1,32 @@
-# Arquitectura
+# Architecture
 
-## Estructura de directorios
+## Directory structure
 
 ```
 splitwise-reconcilier/
 ├── cmd/
 │   └── reconciler/
-│       └── main.go              # Entrypoint y orquestación del flujo
+│       └── main.go              # Entrypoint and flow orchestration
 ├── internal/
 │   ├── splitwise/
-│   │   ├── client.go            # Cliente HTTP con autenticación Bearer
-│   │   ├── models.go            # Structs que representan la respuesta de la API
-│   │   └── expenses.go          # GetExpenses con filtros de fecha y grupo
+│   │   ├── client.go            # HTTP client with Bearer auth
+│   │   ├── models.go            # Structs representing the API response
+│   │   └── expenses.go          # GetExpenses with date and group filters
 │   ├── mapping/
-│   │   ├── rules.go             # Config struct y carga del config.yaml
-│   │   └── mapper.go            # Lógica de asignación de tarjeta por gasto
+│   │   ├── rules.go             # Config struct and config.yaml loader
+│   │   └── mapper.go            # Card assignment logic per expense
 │   └── report/
-│       └── excel.go             # Generación del .xlsx con tres hojas
-├── docs/                        # Esta documentación
-├── output/                      # Reportes generados (ignorado por git)
+│       └── excel.go             # .xlsx generation with three sheets
+├── docs/                        # This documentation
+├── output/                      # Generated reports (git-ignored)
 ├── config.example.yaml
 ├── .env.example
 └── go.mod
 ```
 
-Los paquetes viven bajo `internal/` para que no sean importables desde fuera del módulo. El único punto de entrada público es `cmd/reconciler/main.go`.
+All packages live under `internal/` so they cannot be imported from outside the module. The only public entry point is `cmd/reconciler/main.go`.
 
-## Flujo de datos
+## Data flow
 
 ```
 .env + config.yaml
@@ -34,40 +34,40 @@ Los paquetes viven bajo `internal/` para que no sean importables desde fuera del
        ▼
   main.go (cmd/reconciler)
        │
-       ├─► splitwise.Client.GetCurrentUser()   →  valida el API key
+       ├─► splitwise.Client.GetCurrentUser()   →  validates the API key
        │
-       ├─► splitwise.Client.GetExpenses()      →  []Expense  (filtrados: sin deleted_at)
+       ├─► splitwise.Client.GetExpenses()      →  []Expense  (deleted ones filtered out)
        │
-       ├─► mapping.Mapper.MapAll()             →  []MappedExpense  (con Card asignada)
+       ├─► mapping.Mapper.MapAll()             →  []MappedExpense  (with Card assigned)
        │
        └─► report.Generate()                  →  output/reporte_YYYY-MM.xlsx
 ```
 
-## Responsabilidades por paquete
+## Package responsibilities
 
-| Paquete | Responsabilidad |
-|---------|----------------|
-| `cmd/reconciler` | Parseo de flags, carga de env/config, orquestación, impresión del resumen |
-| `internal/splitwise` | Comunicación con la API de Splitwise, deserialización JSON |
-| `internal/mapping` | Carga de `config.yaml`, resolución de tarjeta por gasto, cálculo de shares |
-| `internal/report` | Construcción del archivo Excel con estilos y tres hojas |
+| Package | Responsibility |
+|---------|---------------|
+| `cmd/reconciler` | Flag parsing, env/config loading, orchestration, stdout summary |
+| `internal/splitwise` | Splitwise API communication, JSON deserialization |
+| `internal/mapping` | `config.yaml` loading, card resolution per expense, share calculation |
+| `internal/report` | Excel file construction with styles and three sheets |
 
-## Dependencias externas
+## External dependencies
 
-| Librería | Uso |
-|----------|-----|
-| `github.com/xuri/excelize/v2` | Generación del archivo `.xlsx` |
-| `github.com/joho/godotenv` | Carga del archivo `.env` |
-| `gopkg.in/yaml.v3` | Parseo de `config.yaml` |
+| Library | Purpose |
+|---------|---------|
+| `github.com/xuri/excelize/v2` | `.xlsx` file generation |
+| `github.com/joho/godotenv` | `.env` file loading |
+| `gopkg.in/yaml.v3` | `config.yaml` parsing |
 
-El cliente HTTP de Splitwise usa únicamente `net/http` de la stdlib, sin SDK de terceros.
+The Splitwise HTTP client uses only `net/http` from the standard library — no third-party SDK.
 
-## Decisiones de diseño
+## Design decisions
 
-**`internal/` en lugar de paquetes exportados.** La herramienta es un CLI de uso personal; no hay razón para que los paquetes sean importables externamente. `internal/` lo refuerza a nivel del compilador.
+**`internal/` instead of exported packages.** This is a personal CLI tool; there is no reason for its packages to be importable externally. `internal/` enforces that at the compiler level.
 
-**Sin caché ni persistencia.** Cada ejecución consulta la API de nuevo. Dado que el volumen de gastos mensuales de un hogar es bajo (< 500), el `limit=500` cubre todo en una sola llamada y la latencia es despreciable.
+**No caching or persistence.** Every run re-fetches from the API. Household monthly expense volume is low (< 500), so `limit=500` covers everything in a single call and latency is negligible.
 
-**Campos monetarios como `float64` internamente.** La API devuelve montos como strings (`"5000.00"`). Se parsean a `float64` al momento de mapear. Para un reporte personal esto es suficiente; si se necesitara aritmética financiera precisa habría que usar `decimal`.
+**Monetary fields as `float64` internally.** The API returns amounts as strings (`"5000.00"`). They are parsed to `float64` at mapping time. For a personal report this is sufficient; if precise financial arithmetic were needed, `decimal` would be the right choice.
 
-**Sin reintentos.** Si la API falla, el error se propaga y el proceso termina. El caso de uso es interactivo (el usuario corre el comando y ve el error), por lo que los reintentos automáticos no agregan valor en esta versión.
+**No retries.** If the API fails, the error propagates and the process exits. The use case is interactive — the user runs the command and sees the error — so automatic retries add no value in this version.

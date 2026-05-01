@@ -1,11 +1,11 @@
-# Referencia de paquetes
+# Package reference
 
 ## `internal/splitwise`
 
-Maneja toda la comunicación con la API REST de Splitwise.
+Handles all communication with the Splitwise REST API.
 
 **Base URL:** `https://secure.splitwise.com/api/v3.0`  
-**Autenticación:** header `Authorization: Bearer <API_KEY>`
+**Auth:** `Authorization: Bearer <API_KEY>` header
 
 ---
 
@@ -15,13 +15,13 @@ Maneja toda la comunicación con la API REST de Splitwise.
 func NewClient(apiKey string) *Client
 ```
 
-Crea un cliente HTTP listo para usar. Internamente instancia un `*http.Client` con configuración por defecto (sin timeout explícito; la herramienta es interactiva y el volumen de datos es pequeño).
+Creates an HTTP client ready to use. Internally instantiates a default `*http.Client` (no explicit timeout; the tool is interactive and data volume is small).
 
 ---
 
 ### `Client.GetCurrentUser() (*User, error)`
 
-Llama a `GET /get_current_user`. Se usa al arrancar para validar que el API key es correcto antes de hacer cualquier otra cosa.
+Calls `GET /get_current_user`. Used at startup to validate the API key before doing anything else.
 
 ```go
 type User struct {
@@ -36,7 +36,7 @@ type User struct {
 
 ### `Client.GetGroups() ([]Group, error)`
 
-Llama a `GET /get_groups`. Útil para listar los grupos disponibles y encontrar el `group_id` correcto. No se usa en el flujo principal actualmente.
+Calls `GET /get_groups`. Useful for listing available groups and finding the right `group_id`. Not used in the main flow currently.
 
 ```go
 type Group struct {
@@ -49,25 +49,25 @@ type Group struct {
 
 ### `Client.GetExpenses(groupID int, from, to time.Time) ([]Expense, error)`
 
-Llama a `GET /get_expenses` con los query params:
+Calls `GET /get_expenses` with the following query params:
 
-| Param | Valor |
+| Param | Value |
 |-------|-------|
-| `group_id` | ID del grupo |
-| `dated_after` | `from` en formato RFC3339 |
-| `dated_before` | `to` en formato RFC3339 |
-| `limit` | `500` (fijo) |
+| `group_id` | Group ID |
+| `dated_after` | `from` in RFC3339 format |
+| `dated_before` | `to` in RFC3339 format |
+| `limit` | `500` (fixed) |
 
-Filtra automáticamente los gastos con `deleted_at != null` antes de retornar.
+Automatically filters out expenses where `deleted_at != null` before returning.
 
 ```go
 type Expense struct {
     ID          int
     Description string
-    Cost        string       // string en la API, ej. "5000.00"
+    Cost        string       // string from the API, e.g. "5000.00"
     Date        string       // RFC3339
-    Details     string       // campo Notes de Splitwise
-    DeletedAt   *string      // nil si el gasto está activo
+    Details     string       // Splitwise Notes field
+    DeletedAt   *string      // nil if the expense is active
     Category    Category
     Users       []ExpenseUser
 }
@@ -79,24 +79,24 @@ type Category struct {
 
 type ExpenseUser struct {
     UserID    int
-    PaidShare string   // cuánto pagó este usuario
-    OwedShare string   // cuánto le corresponde pagar
+    PaidShare string   // how much this user paid
+    OwedShare string   // how much this user owes
 }
 ```
 
-Los campos monetarios vienen como `string` desde la API y se parsean a `float64` en el paquete `mapping`.
+Monetary fields come as `string` from the API and are parsed to `float64` in the `mapping` package.
 
 ---
 
 ## `internal/mapping`
 
-Carga la configuración y aplica la lógica de asignación de tarjetas.
+Loads configuration and applies the card assignment logic.
 
 ---
 
 ### `LoadConfig(path string) (*Config, error)`
 
-Lee y parsea el archivo `config.yaml`. Retorna error si el archivo no existe o tiene sintaxis YAML inválida.
+Reads and parses `config.yaml`. Returns an error if the file does not exist or has invalid YAML syntax.
 
 ```go
 type Config struct {
@@ -112,7 +112,7 @@ type Config struct {
 type Card struct {
     ID         string
     Name       string
-    ClosingDay *int    // nil para tarjetas de débito
+    ClosingDay *int    // nil for debit cards
 }
 ```
 
@@ -125,12 +125,12 @@ func NewMapper(cfg *Config) *Mapper
 func (m *Mapper) MapAll(expenses []splitwise.Expense) []MappedExpense
 ```
 
-`MapAll` itera sobre todos los gastos y aplica `mapOne` a cada uno, que a su vez llama a `resolveCard` y `resolveShares`.
+`MapAll` iterates over all expenses and applies `mapOne` to each, which in turn calls `resolveCard` and `resolveShares`.
 
 ```go
 type MappedExpense struct {
     Expense    splitwise.Expense
-    Card       string    // ID de tarjeta o "UNASSIGNED"
+    Card       string    // card ID or "UNASSIGNED"
     MyShare    float64
     TheirShare float64
 }
@@ -140,70 +140,70 @@ type MappedExpense struct {
 
 ### `FormatCardName(cfg *Config, cardID string) string`
 
-Convierte un `cardID` interno al nombre para mostrar en el Excel. Si el ID no está en el config retorna `(ID)` entre paréntesis. Para `UNASSIGNED` retorna `"Sin asignar"`.
+Converts an internal `cardID` to its display name for the Excel output. Returns `(ID)` in parentheses if the ID is not in the config. Returns `"Sin asignar"` for `UNASSIGNED`.
 
 ---
 
 ### `ParseCost(s string) float64`
 
-Parsea un string monetario de la API (`"5000.00"`) a `float64`. Retorna `0` si el string no es un número válido.
+Parses a monetary string from the API (`"5000.00"`) to `float64`. Returns `0` if the string is not a valid number.
 
 ---
 
-### Constante `Unassigned`
+### Constant `Unassigned`
 
 ```go
 const Unassigned = "UNASSIGNED"
 ```
 
-Valor centinela que indica que no se encontró tarjeta para el gasto.
+Sentinel value indicating no card was found for an expense.
 
 ---
 
 ## `internal/report`
 
-Genera el archivo Excel con tres hojas.
+Generates the Excel file with three sheets.
 
 ---
 
 ### `Generate(expenses []MappedExpense, cfg *Config, month time.Time, outputPath string) error`
 
-Punto de entrada único del paquete. Crea el archivo en `outputPath` con las tres hojas descritas abajo. Si el archivo ya existe, lo sobreescribe.
+The package's single entry point. Creates the file at `outputPath` with the three sheets described below. Overwrites the file if it already exists.
 
 ---
 
-### Hojas generadas
+### Generated sheets
 
-#### "Gastos detallados"
+#### "Gastos detallados" (Expense detail)
 
-Una fila por gasto. Columnas:
+One row per expense. Columns:
 
-| Columna | Contenido |
-|---------|-----------|
+| Column | Content |
+|--------|---------|
 | Fecha | `YYYY-MM-DD` |
 | Descripción | `expense.Description` |
 | Categoría | `expense.Category.Name` |
-| Monto total | `expense.Cost` (float, formato `#,##0.00`) |
+| Monto total | `expense.Cost` (float, `#,##0.00` format) |
 | Mi parte | `MappedExpense.MyShare` |
 | Parte pareja | `MappedExpense.TheirShare` |
-| Tarjeta | nombre display de la tarjeta |
+| Tarjeta | Card display name |
 | Expense ID | `expense.ID` |
-| Notes | `expense.Details` (campo original de Splitwise) |
+| Notes | `expense.Details` (original Splitwise Notes field) |
 
-#### "Resumen por tarjeta"
+#### "Resumen por tarjeta" (Per-card summary)
 
-Dos columnas: nombre de tarjeta y suma de `MyShare` de todos los gastos asignados a ella. El orden sigue el definido en `config.yaml › cards`; `UNASSIGNED` va siempre al final.
+Two columns: card display name and the sum of `MyShare` across all expenses assigned to it. Order follows the `cards` list in `config.yaml`; `UNASSIGNED` is always last.
 
-#### "Sin asignar"
+#### "Sin asignar" (Unassigned)
 
-Mismas columnas que "Gastos detallados" excepto "Parte pareja" y "Tarjeta" (que son irrelevantes). Solo incluye gastos donde `Card == "UNASSIGNED"`.
+Same columns as the detail sheet, minus "Parte pareja" and "Tarjeta" (irrelevant here). Only includes expenses where `Card == "UNASSIGNED"`.
 
 ---
 
-### Estilos aplicados
+### Applied styles
 
-| Elemento | Estilo |
-|----------|--------|
-| Headers de todas las hojas | Negrita + fondo azul claro (`#D9E1F2`) |
-| Columnas monetarias | Formato `#,##0.00` (NumFmt 7) |
-| Anchos de columna | Ajustados por tipo de contenido (fechas: 12, descripciones: 35, etc.) |
+| Element | Style |
+|---------|-------|
+| Headers on all sheets | Bold + light blue background (`#D9E1F2`) |
+| Monetary columns | `#,##0.00` format (NumFmt 7) |
+| Column widths | Set per content type (dates: 12, descriptions: 35, etc.) |

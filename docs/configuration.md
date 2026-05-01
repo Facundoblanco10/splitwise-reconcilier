@@ -1,56 +1,56 @@
-# Configuración
+# Configuration
 
-La herramienta se configura con dos archivos: `.env` para secretos y `config.yaml` para la lógica de negocio.
+The tool is configured through two files: `.env` for secrets and `config.yaml` for business logic.
 
 ---
 
 ## `.env`
 
-Contiene únicamente el API key de Splitwise. Está excluido del repositorio vía `.gitignore`.
+Contains only the Splitwise API key. Excluded from the repository via `.gitignore`.
 
 ```env
 SPLITWISE_API_KEY=your_api_key_here
 ```
 
-Si la variable está presente en el entorno del shell, el archivo `.env` es opcional: `godotenv` lo intenta cargar pero no falla si no existe.
+If the variable is already present in the shell environment, the `.env` file is optional: `godotenv` attempts to load it but does not fail if it is missing.
 
-### Obtener el API key
+### Getting the API key
 
-1. Ir a **https://secure.splitwise.com/apps**
-2. Hacer clic en **Register your application** (o abrir una app existente)
-3. Copiar el valor de **API Key**
+1. Go to **https://secure.splitwise.com/apps**
+2. Click **Register your application** (or open an existing one)
+3. Copy the **API Key** value
 
 ---
 
 ## `config.yaml`
 
-Controla el grupo a consultar, las tarjetas conocidas y las reglas de mapeo.
+Controls which group to query, the known cards, and the mapping rules.
 
-### Referencia completa
+### Full reference
 
 ```yaml
 splitwise:
-  group_id: 12345678    # ID numérico del grupo de Splitwise
-  my_user_id: 111       # ID numérico de tu usuario en Splitwise
+  group_id: 12345678    # numeric ID of your Splitwise group
+  my_user_id: 111       # your numeric Splitwise user ID
 ```
 
-**`group_id`** — Se encuentra en la URL al ver el grupo en Splitwise:
+**`group_id`** — Found in the URL when viewing the group in Splitwise:
 `https://secure.splitwise.com/#/groups/12345678`
 
-**`my_user_id`** — Se puede obtener de la salida de la API:
+**`my_user_id`** — Retrieve it from the API:
 ```bash
 curl -H "Authorization: Bearer <API_KEY>" \
      https://secure.splitwise.com/api/v3.0/get_current_user
 ```
-El campo `id` en la respuesta es tu user ID. La herramienta también lo imprime al arrancar si agregás un log del struct `User`.
+The `id` field in the response is your user ID.
 
 ---
 
 ```yaml
 cards:
-  - id: VISA_GALICIA          # identificador interno (usado en rules y overrides)
-    name: "Visa Galicia"      # nombre que aparece en el Excel
-    closing_day: 25           # día de cierre del resumen (null para débito)
+  - id: VISA_GALICIA          # internal identifier (used in rules and overrides)
+    name: "Visa Galicia"      # display name shown in the Excel report
+    closing_day: 25           # statement closing day (null for debit cards)
   - id: AMEX
     name: "American Express"
     closing_day: 5
@@ -59,9 +59,9 @@ cards:
     closing_day: null
 ```
 
-**`id`** — String en mayúsculas/guiones bajos. Es el identificador que usás en `rules_by_category`, `overrides_by_expense_id`, y en los tags `[CARD:ID]` dentro de Splitwise.
+**`id`** — Uppercase string with underscores. This is the identifier you use in `rules_by_category`, `overrides_by_expense_id`, and in `[CARD:ID]` tags inside Splitwise notes.
 
-**`closing_day`** — Informativo por ahora; no afecta el cálculo. Sirve para saber a qué resumen pertenece un gasto según su fecha.
+**`closing_day`** — Informational for now; does not affect calculations. Useful to know which billing cycle a given expense falls into.
 
 ---
 
@@ -72,18 +72,18 @@ rules_by_category:
   Entertainment: AMEX
 ```
 
-Mapea el **nombre de categoría de Splitwise** al `id` de la tarjeta. El nombre debe coincidir exactamente con el que usa Splitwise (sensible a mayúsculas). Ver [Mapeo de tarjetas](card-mapping.md) para la lógica completa de prioridades.
+Maps a **Splitwise category name** to a card `id`. The match is exact and case-sensitive. See [Card mapping](card-mapping.md) for the full priority logic.
 
-Categorías comunes de Splitwise (en inglés):
+Common Splitwise category names:
 
-| Categoría Splitwise | Descripción |
-|---------------------|-------------|
-| `Groceries` | Supermercado |
-| `Utilities` | Servicios (luz, gas, agua, internet) |
-| `Rent` | Alquiler |
-| `Entertainment` | Entretenimiento, salidas |
-| `Electronics` | Electrónica |
-| `General` | Categoría por defecto si no se especifica |
+| Category | Description |
+|----------|-------------|
+| `Groceries` | Supermarket, food shopping |
+| `Utilities` | Electricity, gas, water, internet |
+| `Rent` | Rent or mortgage |
+| `Entertainment` | Outings, subscriptions |
+| `Electronics` | Electronics and appliances |
+| `General` | Default when no category is set |
 
 ---
 
@@ -93,33 +93,33 @@ overrides_by_expense_id:
   98765433: VISA_GALICIA
 ```
 
-Fuerza la tarjeta para un gasto específico, ignorando cualquier regla o tag. El ID del gasto se puede ver en la URL de Splitwise al abrir el gasto, o en la columna **Expense ID** del Excel generado.
+Forces a specific card for one expense, ignoring any rule or tag. The expense ID can be found in the Splitwise URL when opening the expense, or in the **Expense ID** column of the generated Excel.
 
-Tiene la mayor prioridad en la resolución. Ver [Mapeo de tarjetas](card-mapping.md).
+This has the highest priority in resolution. See [Card mapping](card-mapping.md).
 
 ---
 
-## Flags del CLI
+## CLI flags
 
 ```
 go run ./cmd/reconciler [flags]
 ```
 
-| Flag | Por defecto | Descripción |
-|------|-------------|-------------|
-| `--month` | *(requerido)* | Mes a procesar, formato `YYYY-MM` (ej. `2026-04`) |
-| `--config` | `config.yaml` | Ruta al archivo de configuración |
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--month` | *(required)* | Month to process, format `YYYY-MM` (e.g. `2026-04`) |
+| `--config` | `config.yaml` | Path to the configuration file |
 
-### Ejemplos
+### Examples
 
 ```bash
-# Mes actual
+# Current month
 go run ./cmd/reconciler --month 2026-05
 
-# Mes anterior con config en otra ubicación
-go run ./cmd/reconciler --month 2026-04 --config /home/user/mis-configs/splitwise.yaml
+# Previous month with config in a custom location
+go run ./cmd/reconciler --month 2026-04 --config /home/user/my-configs/splitwise.yaml
 
-# Compilar y ejecutar binario
+# Build a binary and run it
 go build -o reconciler ./cmd/reconciler
 ./reconciler --month 2026-04
 ```

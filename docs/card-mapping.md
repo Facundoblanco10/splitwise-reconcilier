@@ -1,19 +1,19 @@
-# Mapeo de tarjetas
+# Card mapping
 
-El proceso de asignar una tarjeta a cada gasto es el núcleo de la herramienta. Se implementa en `internal/mapping/mapper.go`.
+Assigning a card to each expense is the core of the tool. It is implemented in `internal/mapping/mapper.go`.
 
-## Orden de prioridad
+## Priority order
 
-Para cada gasto, se evalúan las siguientes fuentes en orden. La primera que produce un resultado gana; las demás no se consultan.
+For each expense, the following sources are evaluated in order. The first one that produces a result wins; the rest are not checked.
 
 ```
-1. Override por ID de gasto   →  config.yaml › overrides_by_expense_id
-2. Tag en el campo Notes      →  [CARD:ID] en el campo "details" del gasto
-3. Regla por categoría        →  config.yaml › rules_by_category
-4. Sin asignar                →  "UNASSIGNED"
+1. Override by expense ID   →  config.yaml › overrides_by_expense_id
+2. Tag in the Notes field   →  [CARD:ID] in the expense "details" field
+3. Rule by category         →  config.yaml › rules_by_category
+4. Unassigned               →  "UNASSIGNED"
 ```
 
-### 1. Override por ID de gasto
+### 1. Override by expense ID
 
 ```yaml
 # config.yaml
@@ -21,33 +21,33 @@ overrides_by_expense_id:
   98765432: AMEX
 ```
 
-Si el `id` del gasto aparece en este mapa, se usa esa tarjeta sin importar nada más. Útil para casos puntuales donde la categoría o el tag no aplican (ej. un gasto de supermercado pagado excepcionalmente con otra tarjeta).
+If the expense `id` appears in this map, that card is used regardless of anything else. Useful for one-off cases where the category rule or tag does not apply (e.g. a grocery run paid exceptionally with a different card).
 
-### 2. Tag en el campo Notes (`details`)
+### 2. Tag in the Notes field (`details`)
 
-En Splitwise, al agregar o editar un gasto, el campo **Notes** acepta texto libre. Si ese texto contiene el patrón:
-
-```
-[CARD:ID_DE_TARJETA]
-```
-
-la herramienta extrae el ID y lo usa como tarjeta. El ID debe estar en mayúsculas y puede contener letras, números y guiones bajos. El resto del campo Notes se preserva en el Excel.
-
-**Ejemplos válidos:**
+In Splitwise, the **Notes** field of an expense accepts free text. If that text contains the pattern:
 
 ```
-Compra en Disco [CARD:VISA_GALICIA]
-[CARD:AMEX] cuotas electrodoméstico
-ticket restaurant [CARD:DEBITO_SANTANDER] almuerzo trabajo
+[CARD:CARD_ID]
 ```
 
-El tag puede estar en cualquier posición dentro del campo.
+the tool extracts the ID and uses it as the card. The ID must be uppercase and may contain letters, digits, and underscores. The rest of the Notes field is preserved as-is in the Excel output.
 
-**Regex utilizada:** `\[CARD:([A-Z0-9_]+)\]`
+**Valid examples:**
 
-Este mecanismo es la forma más cómoda de asignar tarjeta gasto a gasto desde la app de Splitwise, sin necesidad de tocar el config.
+```
+Weekly groceries [CARD:VISA_GALICIA]
+[CARD:AMEX] appliance installments
+work lunch [CARD:DEBITO_SANTANDER] reimbursable
+```
 
-### 3. Regla por categoría
+The tag can appear anywhere in the field.
+
+**Regex used:** `\[CARD:([A-Z0-9_]+)\]`
+
+This mechanism is the most convenient way to assign cards expense by expense directly from the Splitwise app, without editing the config file.
+
+### 3. Rule by category
 
 ```yaml
 # config.yaml
@@ -56,45 +56,45 @@ rules_by_category:
   Utilities: DEBITO_SANTANDER
 ```
 
-Se compara el nombre de categoría del gasto (campo `category.name` de la API) con las claves del mapa. La comparación es exacta y sensible a mayúsculas.
+The expense's category name (the `category.name` field from the API) is compared against the map keys. The match is exact and case-sensitive.
 
-Ideal para gastos que siempre van a la misma tarjeta según su naturaleza (ej. siempre pagás el supermercado con Visa).
+Ideal for expenses that always go to the same card by nature (e.g. groceries always on Visa).
 
-### 4. Sin asignar (`UNASSIGNED`)
+### 4. Unassigned (`UNASSIGNED`)
 
-Si ninguna de las fuentes anteriores produce resultado, el gasto queda marcado como `UNASSIGNED`. Aparece en la hoja **"Sin asignar"** del Excel para revisión manual.
+If none of the sources above produce a result, the expense is marked as `UNASSIGNED`. It appears in the **"Sin asignar"** sheet of the Excel for manual review.
 
-## Cómo resolver gastos sin asignar
+## Resolving unassigned expenses
 
-Después de generar el reporte, revisá la hoja **"Sin asignar"**. Para cada gasto tenés dos opciones:
+After generating the report, check the **"Sin asignar"** sheet. For each expense you have two options:
 
-**Opción A — Tag en Splitwise (recomendada):**
-Editá el gasto en Splitwise y agregá `[CARD:TU_TARJETA]` en el campo Notes. Al volver a correr el comando, ese gasto quedará asignado.
+**Option A — Tag in Splitwise (recommended):**
+Edit the expense in Splitwise and add `[CARD:YOUR_CARD_ID]` to the Notes field. Re-running the command will pick it up automatically.
 
-**Opción B — Override en config.yaml:**
-Anotá el Expense ID de la columna correspondiente y agregalo en `overrides_by_expense_id`:
+**Option B — Override in config.yaml:**
+Copy the Expense ID from the corresponding column and add it under `overrides_by_expense_id`:
 
 ```yaml
 overrides_by_expense_id:
   12345678: VISA_GALICIA
 ```
 
-Volvé a correr el comando para regenerar el reporte.
+Re-run the command to regenerate the report.
 
-## Cálculo de shares
+## Share calculation
 
-Una vez asignada la tarjeta, se calculan dos montos por gasto:
+Once a card is assigned, two amounts are calculated per expense:
 
-- **Mi parte (`MyShare`)**: el campo `owed_share` del usuario con `my_user_id` en la lista de usuarios del gasto.
-- **Parte pareja (`TheirShare`)**: suma de `owed_share` de todos los demás usuarios.
+- **My share (`MyShare`)**: the `owed_share` of the user whose ID matches `my_user_id` in the expense's user list.
+- **Their share (`TheirShare`)**: the sum of `owed_share` for all other users.
 
-Estos valores los calcula Splitwise según el porcentaje de división configurado en el grupo; la herramienta los lee tal cual.
+These values are calculated by Splitwise according to the split ratio configured in the group; the tool reads them as-is.
 
-El monto total del gasto (`cost`) también se muestra en el Excel pero no se usa para cálculos internos.
+The total expense cost (`cost`) is also shown in the Excel but is not used in internal calculations.
 
-## Ejemplo completo
+## Full example
 
-Dado este gasto en Splitwise:
+Given this expense from Splitwise:
 
 ```json
 {
@@ -103,7 +103,7 @@ Dado este gasto en Splitwise:
   "cost": "8000.00",
   "date": "2026-04-10T18:00:00Z",
   "category": { "name": "Groceries" },
-  "details": "compra semanal",
+  "details": "weekly shop",
   "deleted_at": null,
   "users": [
     { "user_id": 111, "paid_share": "8000.00", "owed_share": "5000.00" },
@@ -112,13 +112,13 @@ Dado este gasto en Splitwise:
 }
 ```
 
-Y con `my_user_id: 111` y la regla `Groceries: VISA_GALICIA`:
+With `my_user_id: 111` and the rule `Groceries: VISA_GALICIA`:
 
-| Campo | Valor |
-|-------|-------|
-| Override por ID | no encontrado |
-| Tag en Notes | no hay `[CARD:...]` |
-| Regla por categoría | `Groceries` → `VISA_GALICIA` ✓ |
-| Tarjeta asignada | `VISA_GALICIA` |
-| Mi parte | 5000.00 |
-| Parte pareja | 3000.00 |
+| Step | Result |
+|------|--------|
+| Override by ID | not found |
+| Tag in Notes | no `[CARD:...]` present |
+| Rule by category | `Groceries` → `VISA_GALICIA` ✓ |
+| Assigned card | `VISA_GALICIA` |
+| My share | 5000.00 |
+| Their share | 3000.00 |
