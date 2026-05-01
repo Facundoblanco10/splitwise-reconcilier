@@ -15,7 +15,7 @@ func Generate(expenses []mapping.MappedExpense, cfg *mapping.Config, month time.
 
 	boldStyle, err := f.NewStyle(&excelize.Style{
 		Font: &excelize.Font{Bold: true},
-		Fill: excelize.Fill{Type: "pattern", Color: []string{"#D9E1F2"}, Pattern: 1},
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"#B3051C"}, Pattern: 1},
 	})
 	if err != nil {
 		return fmt.Errorf("creating bold style: %w", err)
@@ -31,10 +31,10 @@ func Generate(expenses []mapping.MappedExpense, cfg *mapping.Config, month time.
 	if err := buildDetailSheet(f, expenses, boldStyle, currencyStyle, myName, partnerName); err != nil {
 		return err
 	}
-	if err := buildSummarySheet(f, expenses, boldStyle, currencyStyle, myName); err != nil {
+	if err := buildSummarySheet(f, expenses, boldStyle, currencyStyle, myName, partnerName); err != nil {
 		return err
 	}
-	if err := buildUnassignedSheet(f, expenses, boldStyle, currencyStyle, myName); err != nil {
+	if err := buildUnassignedSheet(f, expenses, boldStyle, currencyStyle, myName, partnerName); err != nil {
 		return err
 	}
 
@@ -83,16 +83,18 @@ func buildDetailSheet(f *excelize.File, expenses []mapping.MappedExpense, boldSt
 	return nil
 }
 
-func buildSummarySheet(f *excelize.File, expenses []mapping.MappedExpense, boldStyle, currencyStyle int, myName string) error {
+func buildSummarySheet(f *excelize.File, expenses []mapping.MappedExpense, boldStyle, currencyStyle int, myName, partnerName string) error {
 	sheet := "Summary by Card"
 	f.NewSheet(sheet)
 
-	totals := map[string]float64{}
+	myTotals := map[string]float64{}
+	theirTotals := map[string]float64{}
 	for _, e := range expenses {
-		totals[e.Card] += e.MyShare
+		myTotals[e.Card] += e.MyShare
+		theirTotals[e.Card] += e.TheirShare
 	}
 
-	headers := []string{"Card", myName}
+	headers := []string{"Card", myName, partnerName, "Total"}
 	for i, h := range headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		f.SetCellValue(sheet, cell, h)
@@ -100,23 +102,29 @@ func buildSummarySheet(f *excelize.File, expenses []mapping.MappedExpense, boldS
 	}
 
 	row := 2
-	for _, card := range cardOrder(totals) {
+	for _, card := range cardOrder(myTotals) {
 		f.SetCellValue(sheet, cellName(1, row), mapping.FormatCardName(card))
-		f.SetCellValue(sheet, cellName(2, row), totals[card])
-		f.SetCellStyle(sheet, cellName(2, row), cellName(2, row), currencyStyle)
+		f.SetCellValue(sheet, cellName(2, row), myTotals[card])
+		f.SetCellValue(sheet, cellName(3, row), theirTotals[card])
+		f.SetCellValue(sheet, cellName(4, row), myTotals[card]+theirTotals[card])
+		for _, col := range []int{2, 3, 4} {
+			f.SetCellStyle(sheet, cellName(col, row), cellName(col, row), currencyStyle)
+		}
 		row++
 	}
 
 	f.SetColWidth(sheet, "A", "A", 25)
 	f.SetColWidth(sheet, "B", "B", 16)
+	f.SetColWidth(sheet, "C", "C", 16)
+	f.SetColWidth(sheet, "D", "D", 16)
 	return nil
 }
 
-func buildUnassignedSheet(f *excelize.File, expenses []mapping.MappedExpense, boldStyle, currencyStyle int, myName string) error {
+func buildUnassignedSheet(f *excelize.File, expenses []mapping.MappedExpense, boldStyle, currencyStyle int, myName, partnerName string) error {
 	sheet := "Unassigned"
 	f.NewSheet(sheet)
 
-	headers := []string{"Date", "Description", "Category", "Total Amount", myName, "Expense ID", "Notes"}
+	headers := []string{"Date", "Description", "Category", "Total Amount", myName, partnerName, "Expense ID", "Notes"}
 	for i, h := range headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		f.SetCellValue(sheet, cell, h)
@@ -134,16 +142,17 @@ func buildUnassignedSheet(f *excelize.File, expenses []mapping.MappedExpense, bo
 		f.SetCellValue(sheet, cellName(3, row), e.Expense.Category.Name)
 		f.SetCellValue(sheet, cellName(4, row), mapping.ParseCost(e.Expense.Cost))
 		f.SetCellValue(sheet, cellName(5, row), e.MyShare)
-		f.SetCellValue(sheet, cellName(6, row), e.Expense.ID)
-		f.SetCellValue(sheet, cellName(7, row), e.Expense.Details)
+		f.SetCellValue(sheet, cellName(6, row), e.TheirShare)
+		f.SetCellValue(sheet, cellName(7, row), e.Expense.ID)
+		f.SetCellValue(sheet, cellName(8, row), e.Expense.Details)
 
-		for _, col := range []int{4, 5} {
+		for _, col := range []int{4, 5, 6} {
 			f.SetCellStyle(sheet, cellName(col, row), cellName(col, row), currencyStyle)
 		}
 		row++
 	}
 
-	widths := map[int]float64{1: 12, 2: 35, 3: 18, 4: 14, 5: 12, 6: 12, 7: 30}
+	widths := map[int]float64{1: 12, 2: 35, 3: 18, 4: 14, 5: 12, 6: 12, 7: 12, 8: 30}
 	for col, w := range widths {
 		colName, _ := excelize.ColumnNumberToName(col)
 		f.SetColWidth(sheet, colName, colName, w)
