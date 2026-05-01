@@ -74,13 +74,16 @@ go run ./cmd/reconciler [flags]
 ### Examples
 
 ```bash
-# Current month
-go run ./cmd/reconciler --month 2026-05
+# Current month (auto-detected)
+make run
 
-# Previous month with config in a custom location
+# Specific month
+make run MONTH=2026-04
+
+# Specific month with a custom config path
 go run ./cmd/reconciler --month 2026-04 --config /home/user/my-configs/splitwise.yaml
 
-# Build a binary and run it
-go build -o reconciler ./cmd/reconciler
+# Build a binary and run it directly
+make build
 ./reconciler --month 2026-04
 ```

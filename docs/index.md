@@ -17,7 +17,8 @@ cp .env.example .env                # add SPLITWISE_API_KEY
 cp config.example.yaml config.yaml  # add group_id and my_user_id
 
 # 2. Run for the desired month
-go run ./cmd/reconciler --month 2026-04
+make run                    # current month (auto-detected)
+make run MONTH=2026-04      # specific month
 
 # 3. Report is saved to:
 #    output/report_2026-04.xlsx
@@ -26,4 +27,5 @@ go run ./cmd/reconciler --month 2026-04
 ## Requirements
 
 - Go 1.21 or later
+- Make (`sudo apt-get install make` / `brew install make`)
 - A Splitwise account with API access (see [Configuration](configuration.md#getting-the-api-key))

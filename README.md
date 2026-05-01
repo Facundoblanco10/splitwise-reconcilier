@@ -33,6 +33,12 @@ Report saved to: output/report_2026-04.xlsx
 
 Go · `excelize` · `godotenv` · `yaml.v3` · `net/http`
 
+## Requirements
+
+- Go 1.21 or later
+- Make (`sudo apt-get install make` / `brew install make`)
+- A Splitwise account with API access
+
 ## Documentation
 
 Full technical documentation lives in [`/docs`](docs/index.md):
@@ -47,5 +53,6 @@ Full technical documentation lives in [`/docs`](docs/index.md):
 ```bash
 cp .env.example .env                # add your SPLITWISE_API_KEY
 cp config.example.yaml config.yaml  # add group_id, my_user_id and your cards
-go run ./cmd/reconciler --month 2026-04
+make run                            # current month
+make run MONTH=2026-04              # specific month
 ```
