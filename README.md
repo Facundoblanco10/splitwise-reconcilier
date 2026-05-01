@@ -51,8 +51,7 @@ Full technical documentation lives in [`/docs`](docs/index.md):
 ## Quick start
 
 ```bash
-cp .env.example .env                # add your SPLITWISE_API_KEY
-cp config.example.yaml config.yaml  # add group_id, my_user_id and your cards
+make setup                          # interactive first-time setup (.env + config.yaml)
 make run                            # current month
 make run MONTH=2026-04              # specific month
 ```

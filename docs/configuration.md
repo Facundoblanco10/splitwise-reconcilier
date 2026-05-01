@@ -2,6 +2,10 @@
 
 The tool is configured through two files: `.env` for secrets and `config.yaml` for business logic.
 
+Run `make setup` (or `bash setup.sh`) for an interactive prompt that creates both files for you.
+
+---
+
 ---
 
 ## `.env`

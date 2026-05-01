@@ -1,7 +1,11 @@
 BINARY := reconciler
 MONTH  ?= $(shell date +%Y-%m)
 
-.PHONY: run build clean help
+.PHONY: run build clean setup help
+
+## setup: interactive first-time configuration (.env and config.yaml)
+setup:
+	@bash setup.sh
 
 ## run: fetch and generate report for MONTH (default: current month)
 run:

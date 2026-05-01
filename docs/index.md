@@ -12,9 +12,8 @@ A Go CLI tool that fetches expenses from a Splitwise household group, maps each 
 ## Quick start
 
 ```bash
-# 1. Copy and fill in the config files
-cp .env.example .env                # add SPLITWISE_API_KEY
-cp config.example.yaml config.yaml  # add group_id and my_user_id
+# 1. Run the interactive setup (creates .env and config.yaml)
+make setup
 
 # 2. Run for the desired month
 make run                    # current month (auto-detected)
