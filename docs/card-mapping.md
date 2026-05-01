@@ -2,109 +2,101 @@
 
 Assigning a card to each expense is the core of the tool. It is implemented in `internal/mapping/mapper.go`.
 
+## Card key format
+
+Cards are not pre-defined in config. They are identified at runtime as `ENTITY:PERSON` strings — for example `SCOTIA:John` or `SANTANDER:Jane`. The entity is the bank name (uppercase) and the person is the first name of whoever holds that card.
+
 ## Priority order
 
-For each expense, the following sources are evaluated in order. The first one that produces a result wins; the rest are not checked.
+For each expense, the following sources are evaluated in order. The first one that produces a result wins.
 
 ```
-1. Override by expense ID   →  config.yaml › overrides_by_expense_id
-2. Tag in the Notes field   →  [CARD:ID] in the expense "details" field
-3. Rule by category         →  config.yaml › rules_by_category
-4. Unassigned               →  "UNASSIGNED"
+1. [ENTITY:PERSON] tag    →  in the expense "details" (Notes) field
+2. Payer's default entity →  config.yaml › members[].default_entity + payer first name
+3. Unassigned             →  "UNASSIGNED"
 ```
 
-### 1. Override by expense ID
+### 1. `[ENTITY:PERSON]` tag in the Notes field
+
+In Splitwise, the **Notes** field of an expense accepts free text. If it contains a tag of the form:
+
+```
+[ENTITY:PERSON]
+```
+
+the tool uses `ENTITY:PERSON` as the card key directly. The person segment can be a custom alias or the user's actual first name — both are treated identically.
+
+If the person segment is **empty** (`[ENTITY:]`), it is auto-filled with the first name of whoever paid the expense:
+
+```
+[SCOTIA:]   →   SCOTIA:John   (if John paid)
+```
+
+**Examples:**
+
+```
+[SCOTIA:FATI]                      →  SCOTIA:FATI
+[VISA:John] weekly groceries       →  VISA:John
+appliance installments [AMEX:Jane] →  AMEX:Jane
+[SANTANDER:]                       →  SANTANDER:<payer first name>
+```
+
+The tag can appear anywhere in the Notes field. If multiple `[X:Y]` tags are present, the first one wins.
+
+**Regex used:** `\[([A-Z0-9_]+):([^\]]*)\]`
+
+### 2. Payer's default entity
 
 ```yaml
 # config.yaml
-overrides_by_expense_id:
-  98765432: AMEX
+members:
+  - splitwise_id: 111
+    default_entity: SCOTIA
+  - splitwise_id: 222
+    default_entity: SANTANDER
 ```
 
-If the expense `id` appears in this map, that card is used regardless of anything else. Useful for one-off cases where the category rule or tag does not apply (e.g. a grocery run paid exceptionally with a different card).
+If no tag and no category rule match, the tool looks at who paid the expense (`paid_share > 0`) and checks whether that user has a `default_entity` configured. If so, the card is `DEFAULT_ENTITY:PAYER_FIRST_NAME`.
 
-### 2. Tag in the Notes field (`details`)
+This is the fallback for expenses without any tag or matching category rule, as long as the payer is configured.
 
-In Splitwise, the **Notes** field of an expense accepts free text. If that text contains the pattern:
+> **Note:** for expenses where multiple users share the payment, the first payer found in the list is used.
 
-```
-[CARD:CARD_ID]
-```
+### 3. Unassigned (`UNASSIGNED`)
 
-the tool extracts the ID and uses it as the card. The ID must be uppercase and may contain letters, digits, and underscores. The rest of the Notes field is preserved as-is in the Excel output.
-
-**Valid examples:**
-
-```
-Weekly groceries [CARD:VISA_GALICIA]
-[CARD:AMEX] appliance installments
-work lunch [CARD:DEBIT_SANTANDER] reimbursable
-```
-
-The tag can appear anywhere in the field.
-
-**Regex used:** `\[CARD:([A-Z0-9_]+)\]`
-
-This mechanism is the most convenient way to assign cards expense by expense directly from the Splitwise app, without editing the config file.
-
-### 3. Rule by category
-
-```yaml
-# config.yaml
-rules_by_category:
-  Groceries: VISA_GALICIA
-  Utilities: DEBIT_SANTANDER
-```
-
-The expense's category name (the `category.name` field from the API) is compared against the map keys. The match is exact and case-sensitive.
-
-Ideal for expenses that always go to the same card by nature (e.g. groceries always on Visa).
-
-### 4. Unassigned (`UNASSIGNED`)
-
-If none of the sources above produce a result, the expense is marked as `UNASSIGNED`. It appears in the **"Unassigned"** sheet of the Excel for manual review.
+If none of the sources above produce a result, the expense is marked as `UNASSIGNED` and appears in the **"Unassigned"** sheet for manual review.
 
 ## Resolving unassigned expenses
 
 After generating the report, check the **"Unassigned"** sheet. For each expense you have two options:
 
 **Option A — Tag in Splitwise (recommended):**
-Edit the expense in Splitwise and add `[CARD:YOUR_CARD_ID]` to the Notes field. Re-running the command will pick it up automatically.
+Edit the expense in Splitwise and add `[ENTITY:NAME]` to the Notes field. Re-running the command will pick it up automatically.
 
-**Option B — Override in config.yaml:**
-Copy the Expense ID from the corresponding column and add it under `overrides_by_expense_id`:
-
-```yaml
-overrides_by_expense_id:
-  12345678: VISA_GALICIA
-```
-
-Re-run the command to regenerate the report.
+**Option B — Add a default entity for the payer in config.yaml:**
+If the payer doesn't have a `default_entity` configured yet, add one under `members:`.
 
 ## Share calculation
 
 Once a card is assigned, two amounts are calculated per expense:
 
-- **My share (`MyShare`)**: the `owed_share` of the user whose ID matches `my_user_id` in the expense's user list.
+- **My share (`MyShare`)**: the `owed_share` of the user whose ID matches `my_user_id`.
 - **Their share (`TheirShare`)**: the sum of `owed_share` for all other users.
-
-These values are calculated by Splitwise according to the split ratio configured in the group; the tool reads them as-is.
 
 The total expense cost (`cost`) is also shown in the Excel but is not used in internal calculations.
 
 ## Full example
 
-Given this expense from Splitwise:
+Given this expense:
 
 ```json
 {
   "id": 99001,
-  "description": "Supermercado Disco",
+  "description": "Supermarket",
   "cost": "8000.00",
   "date": "2026-04-10T18:00:00Z",
   "category": { "name": "Groceries" },
-  "details": "weekly shop",
-  "deleted_at": null,
+  "details": "[SCOTIA:FATI]",
   "users": [
     { "user_id": 111, "paid_share": "8000.00", "owed_share": "5000.00" },
     { "user_id": 222, "paid_share": "0.00",    "owed_share": "3000.00" }
@@ -112,13 +104,12 @@ Given this expense from Splitwise:
 }
 ```
 
-With `my_user_id: 111` and the rule `Groceries: VISA_GALICIA`:
-
 | Step | Result |
 |------|--------|
 | Override by ID | not found |
-| Tag in Notes | no `[CARD:...]` present |
-| Rule by category | `Groceries` → `VISA_GALICIA` ✓ |
-| Assigned card | `VISA_GALICIA` |
+| Tag in Notes | `[SCOTIA:FATI]` found → `SCOTIA:FATI` ✓ |
+| Assigned card | `SCOTIA:FATI` |
 | My share | 5000.00 |
 | Their share | 3000.00 |
+
+If the notes were empty and `members` had `splitwise_id: 111, default_entity: SCOTIA`, the card would be resolved as `SCOTIA:John` (user 111's first name).

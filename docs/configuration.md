@@ -24,7 +24,7 @@ If the variable is already present in the shell environment, the `.env` file is 
 
 ## `config.yaml`
 
-Controls which group to query, the known cards, and the mapping rules.
+Controls which group to query and the member-to-entity mappings.
 
 ### Full reference
 
@@ -47,55 +47,16 @@ The `id` field in the response is your user ID.
 ---
 
 ```yaml
-cards:
-  - id: VISA_GALICIA          # internal identifier (used in rules and overrides)
-    name: "Visa Galicia"      # display name shown in the Excel report
-    closing_day: 25           # statement closing day (null for debit cards)
-  - id: AMEX
-    name: "American Express"
-    closing_day: 5
-  - id: DEBIT_SANTANDER
-    name: "Santander Debit"
-    closing_day: null
+members:
+  - splitwise_id: 111       # numeric Splitwise user ID
+    default_entity: SCOTIA  # bank entity used when no tag or category rule matches
+  - splitwise_id: 222
+    default_entity: SANTANDER
 ```
 
-**`id`** — Uppercase string with underscores. This is the identifier you use in `rules_by_category`, `overrides_by_expense_id`, and in `[CARD:ID]` tags inside Splitwise notes.
+**`splitwise_id`** — The numeric Splitwise user ID. Get it from `GET /get_current_user` (printed at startup) for yourself; for other members, inspect the group response or the expense user list.
 
-**`closing_day`** — Informational for now; does not affect calculations. Useful to know which billing cycle a given expense falls into.
-
----
-
-```yaml
-rules_by_category:
-  Groceries: VISA_GALICIA
-  Utilities: DEBIT_SANTANDER
-  Entertainment: AMEX
-```
-
-Maps a **Splitwise category name** to a card `id`. The match is exact and case-sensitive. See [Card mapping](card-mapping.md) for the full priority logic.
-
-Common Splitwise category names:
-
-| Category | Description |
-|----------|-------------|
-| `Groceries` | Supermarket, food shopping |
-| `Utilities` | Electricity, gas, water, internet |
-| `Rent` | Rent or mortgage |
-| `Entertainment` | Outings, subscriptions |
-| `Electronics` | Electronics and appliances |
-| `General` | Default when no category is set |
-
----
-
-```yaml
-overrides_by_expense_id:
-  98765432: AMEX
-  98765433: VISA_GALICIA
-```
-
-Forces a specific card for one expense, ignoring any rule or tag. The expense ID can be found in the Splitwise URL when opening the expense, or in the **Expense ID** column of the generated Excel.
-
-This has the highest priority in resolution. See [Card mapping](card-mapping.md).
+**`default_entity`** — Bank entity used when an expense has no `[ENTITY:PERSON]` tag. Combined at runtime with the payer's Splitwise first name to form `ENTITY:FirstName`.
 
 ---
 

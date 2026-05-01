@@ -124,15 +124,12 @@ type Config struct {
         GroupID  int
         MyUserID int
     }
-    Cards                []Card
-    RulesByCategory      map[string]string
-    OverridesByExpenseID map[int]string
+    Members []Member
 }
 
-type Card struct {
-    ID         string
-    Name       string
-    ClosingDay *int    // nil for debit cards
+type Member struct {
+    SplitwiseID   int
+    DefaultEntity string  // bank entity used when no [ENTITY:PERSON] tag is present
 }
 ```
 
@@ -141,16 +138,18 @@ type Card struct {
 ### `Mapper`
 
 ```go
-func NewMapper(cfg *Config) *Mapper
+func NewMapper(cfg *Config, userFirstNames map[int]string) *Mapper
 func (m *Mapper) MapAll(expenses []splitwise.Expense) []MappedExpense
 ```
+
+`userFirstNames` is a map of Splitwise user ID → first name, built from the group members in `main.go`. It is used to auto-complete the person segment of card keys and to detect the payer.
 
 `MapAll` iterates over all expenses and applies `mapOne` to each, which in turn calls `resolveCard` and `resolveShares`.
 
 ```go
 type MappedExpense struct {
     Expense    splitwise.Expense
-    Card       string    // card ID or "UNASSIGNED"
+    Card       string    // "ENTITY:PERSON" or "UNASSIGNED"
     MyShare    float64
     TheirShare float64
 }
@@ -158,9 +157,9 @@ type MappedExpense struct {
 
 ---
 
-### `FormatCardName(cfg *Config, cardID string) string`
+### `FormatCardName(cardID string) string`
 
-Converts an internal `cardID` to its display name for the Excel output. Returns `(ID)` in parentheses if the ID is not in the config. Returns `"Unassigned"` for `UNASSIGNED`.
+Returns a display label for a card key. Returns `"Unassigned"` for `UNASSIGNED`; otherwise returns the key as-is (e.g. `"SCOTIA:John"`).
 
 ---
 

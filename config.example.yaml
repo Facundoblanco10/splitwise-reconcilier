@@ -2,22 +2,10 @@ splitwise:
   group_id: 12345678
   my_user_id: 111
 
-cards:
-  - id: VISA_GALICIA
-    name: "Visa Galicia"
-    closing_day: 25
-  - id: AMEX
-    name: "American Express"
-    closing_day: 5
-  - id: DEBIT_SANTANDER
-    name: "Santander Debit"
-    closing_day: null
-
-rules_by_category:
-  Groceries: VISA_GALICIA
-  Utilities: DEBIT_SANTANDER
-  Entertainment: AMEX
-
-overrides_by_expense_id:
-  98765432: AMEX
-  98765433: VISA_GALICIA
+# One entry per group member. default_entity is used when no [ENTITY:PERSON]
+# tag is present in the expense notes.
+members:
+  - splitwise_id: 111
+    default_entity: SCOTIA
+  - splitwise_id: 222
+    default_entity: SANTANDER
