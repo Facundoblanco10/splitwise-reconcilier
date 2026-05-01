@@ -10,9 +10,9 @@ import (
 
 const Unassigned = "UNASSIGNED"
 
-// cardTagRe matches [ENTITY] or [ENTITY:PERSON] tags in the details field.
+// cardTagRe matches [ENTITY] or [ENTITY:PERSON] tags in the details field (case-insensitive).
 // Group 1 = entity (e.g. SCOTIA, ITAU-D), group 2 = person (e.g. FATI — absent or empty triggers auto-fill).
-var cardTagRe = regexp.MustCompile(`\[([A-Z0-9_-]+)(?::([^\]]*))?\]`)
+var cardTagRe = regexp.MustCompile(`(?i)\[([A-Z0-9_-]+)(?::([^\]]*))?\]`)
 
 type MappedExpense struct {
 	Expense    splitwise.Expense
@@ -53,7 +53,7 @@ func (m *Mapper) resolveCard(e splitwise.Expense) string {
 	// Priority 1: [ENTITY:PERSON] tag in the details (notes) field.
 	// If the person segment is empty, auto-fill with the payer's first name.
 	for _, matches := range cardTagRe.FindAllStringSubmatch(e.Details, -1) {
-		entity := matches[1]
+		entity := strings.ToUpper(matches[1])
 		person := strings.TrimSpace(matches[2])
 		if person == "" {
 			person = m.payerFirstName(e)
