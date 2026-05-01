@@ -30,7 +30,7 @@ go.work.sum
 # Project-specific
 config.yaml
 output/
-reconciler
+/reconciler
 
 # Editor/IDE
 # .idea/
