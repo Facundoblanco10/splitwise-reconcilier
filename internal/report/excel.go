@@ -2,7 +2,7 @@ package report
 
 import (
 	"fmt"
-	"strings"
+	"sort"
 	"time"
 
 	"github.com/facundo/splitwise-reconcilier/internal/mapping"
@@ -28,13 +28,13 @@ func Generate(expenses []mapping.MappedExpense, cfg *mapping.Config, month time.
 		return fmt.Errorf("creating currency style: %w", err)
 	}
 
-	if err := buildDetailSheet(f, expenses, cfg, boldStyle, currencyStyle, myName, partnerName); err != nil {
+	if err := buildDetailSheet(f, expenses, boldStyle, currencyStyle, myName, partnerName); err != nil {
 		return err
 	}
-	if err := buildSummarySheet(f, expenses, cfg, boldStyle, currencyStyle, myName); err != nil {
+	if err := buildSummarySheet(f, expenses, boldStyle, currencyStyle, myName); err != nil {
 		return err
 	}
-	if err := buildUnassignedSheet(f, expenses, cfg, boldStyle, currencyStyle, myName); err != nil {
+	if err := buildUnassignedSheet(f, expenses, boldStyle, currencyStyle, myName); err != nil {
 		return err
 	}
 
@@ -44,7 +44,7 @@ func Generate(expenses []mapping.MappedExpense, cfg *mapping.Config, month time.
 	return f.SaveAs(outputPath)
 }
 
-func buildDetailSheet(f *excelize.File, expenses []mapping.MappedExpense, cfg *mapping.Config, boldStyle, currencyStyle int, myName, partnerName string) error {
+func buildDetailSheet(f *excelize.File, expenses []mapping.MappedExpense, boldStyle, currencyStyle int, myName, partnerName string) error {
 	sheet := "Expense Detail"
 	f.NewSheet(sheet)
 
@@ -65,7 +65,7 @@ func buildDetailSheet(f *excelize.File, expenses []mapping.MappedExpense, cfg *m
 		f.SetCellValue(sheet, cellName(4, row), mapping.ParseCost(e.Expense.Cost))
 		f.SetCellValue(sheet, cellName(5, row), e.MyShare)
 		f.SetCellValue(sheet, cellName(6, row), e.TheirShare)
-		f.SetCellValue(sheet, cellName(7, row), mapping.FormatCardName(cfg, e.Card))
+		f.SetCellValue(sheet, cellName(7, row), mapping.FormatCardName(e.Card))
 		f.SetCellValue(sheet, cellName(8, row), e.Expense.ID)
 		f.SetCellValue(sheet, cellName(9, row), e.Expense.Details)
 
@@ -83,7 +83,7 @@ func buildDetailSheet(f *excelize.File, expenses []mapping.MappedExpense, cfg *m
 	return nil
 }
 
-func buildSummarySheet(f *excelize.File, expenses []mapping.MappedExpense, cfg *mapping.Config, boldStyle, currencyStyle int, myName string) error {
+func buildSummarySheet(f *excelize.File, expenses []mapping.MappedExpense, boldStyle, currencyStyle int, myName string) error {
 	sheet := "Summary by Card"
 	f.NewSheet(sheet)
 
@@ -100,9 +100,8 @@ func buildSummarySheet(f *excelize.File, expenses []mapping.MappedExpense, cfg *
 	}
 
 	row := 2
-	for _, card := range cardOrder(cfg, totals) {
-		name := mapping.FormatCardName(cfg, card)
-		f.SetCellValue(sheet, cellName(1, row), name)
+	for _, card := range cardOrder(totals) {
+		f.SetCellValue(sheet, cellName(1, row), mapping.FormatCardName(card))
 		f.SetCellValue(sheet, cellName(2, row), totals[card])
 		f.SetCellStyle(sheet, cellName(2, row), cellName(2, row), currencyStyle)
 		row++
@@ -113,7 +112,7 @@ func buildSummarySheet(f *excelize.File, expenses []mapping.MappedExpense, cfg *
 	return nil
 }
 
-func buildUnassignedSheet(f *excelize.File, expenses []mapping.MappedExpense, cfg *mapping.Config, boldStyle, currencyStyle int, myName string) error {
+func buildUnassignedSheet(f *excelize.File, expenses []mapping.MappedExpense, boldStyle, currencyStyle int, myName string) error {
 	sheet := "Unassigned"
 	f.NewSheet(sheet)
 
@@ -153,21 +152,15 @@ func buildUnassignedSheet(f *excelize.File, expenses []mapping.MappedExpense, cf
 	return nil
 }
 
-// cardOrder returns card IDs ordered: configured cards first, then UNASSIGNED.
-func cardOrder(cfg *mapping.Config, totals map[string]float64) []string {
-	seen := map[string]bool{}
+// cardOrder returns card keys sorted alphabetically, with UNASSIGNED always last.
+func cardOrder(totals map[string]float64) []string {
 	var order []string
-	for _, c := range cfg.Cards {
-		if _, ok := totals[c.ID]; ok {
-			order = append(order, c.ID)
-			seen[c.ID] = true
-		}
-	}
 	for k := range totals {
-		if !seen[k] && !strings.EqualFold(k, mapping.Unassigned) {
+		if k != mapping.Unassigned {
 			order = append(order, k)
 		}
 	}
+	sort.Strings(order)
 	if _, ok := totals[mapping.Unassigned]; ok {
 		order = append(order, mapping.Unassigned)
 	}

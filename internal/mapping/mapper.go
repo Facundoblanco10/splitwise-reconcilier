@@ -1,30 +1,33 @@
 package mapping
 
 import (
-	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/facundo/splitwise-reconcilier/internal/splitwise"
 )
 
 const Unassigned = "UNASSIGNED"
 
-var cardTagRe = regexp.MustCompile(`\[CARD:([A-Z0-9_]+)\]`)
+// cardTagRe matches [ENTITY] or [ENTITY:PERSON] tags in the details field.
+// Group 1 = entity (e.g. SCOTIA), group 2 = person (e.g. FATI — absent or empty triggers auto-fill).
+var cardTagRe = regexp.MustCompile(`\[([A-Z0-9_]+)(?::([^\]]*))?\]`)
 
 type MappedExpense struct {
-	Expense   splitwise.Expense
-	Card      string
-	MyShare   float64
+	Expense    splitwise.Expense
+	Card       string
+	MyShare    float64
 	TheirShare float64
 }
 
 type Mapper struct {
-	cfg *Config
+	cfg            *Config
+	userFirstNames map[int]string // splitwise user ID → first name
 }
 
-func NewMapper(cfg *Config) *Mapper {
-	return &Mapper{cfg: cfg}
+func NewMapper(cfg *Config, userFirstNames map[int]string) *Mapper {
+	return &Mapper{cfg: cfg, userFirstNames: userFirstNames}
 }
 
 func (m *Mapper) MapAll(expenses []splitwise.Expense) []MappedExpense {
@@ -47,19 +50,31 @@ func (m *Mapper) mapOne(e splitwise.Expense) MappedExpense {
 }
 
 func (m *Mapper) resolveCard(e splitwise.Expense) string {
-	// Priority 1: explicit override by expense ID
-	if cardID, ok := m.cfg.OverridesByExpenseID[e.ID]; ok {
-		return cardID
+	// Priority 1: [ENTITY:PERSON] tag in the details (notes) field.
+	// If the person segment is empty, auto-fill with the payer's first name.
+	for _, matches := range cardTagRe.FindAllStringSubmatch(e.Details, -1) {
+		entity := matches[1]
+		person := strings.TrimSpace(matches[2])
+		if person == "" {
+			person = m.payerFirstName(e)
+		}
+		if person != "" {
+			return entity + ":" + person
+		}
+		return entity
 	}
 
-	// Priority 2: [CARD:XXX] tag in details field
-	if matches := cardTagRe.FindStringSubmatch(e.Details); len(matches) == 2 {
-		return matches[1]
-	}
-
-	// Priority 3: rule by category name
-	if cardID, ok := m.cfg.RulesByCategory[e.Category.Name]; ok {
-		return cardID
+	// Priority 2: payer's default entity from member config.
+	for _, u := range e.Users {
+		if parseAmount(u.PaidShare) > 0 {
+			for _, member := range m.cfg.Members {
+				if member.SplitwiseID == u.UserID && member.DefaultEntity != "" {
+					if name, ok := m.userFirstNames[u.UserID]; ok {
+						return member.DefaultEntity + ":" + name
+					}
+				}
+			}
+		}
 	}
 
 	return Unassigned
@@ -77,6 +92,19 @@ func (m *Mapper) resolveShares(e splitwise.Expense) (myShare, theirShare float64
 	return
 }
 
+// payerFirstName returns the first name of the user with paid_share > 0.
+// In split-payment expenses (multiple payers), returns the first match.
+func (m *Mapper) payerFirstName(e splitwise.Expense) string {
+	for _, u := range e.Users {
+		if parseAmount(u.PaidShare) > 0 {
+			if name, ok := m.userFirstNames[u.UserID]; ok {
+				return name
+			}
+		}
+	}
+	return ""
+}
+
 func parseAmount(s string) float64 {
 	v, err := strconv.ParseFloat(s, 64)
 	if err != nil {
@@ -89,14 +117,10 @@ func ParseCost(s string) float64 {
 	return parseAmount(s)
 }
 
-func FormatCardName(cfg *Config, cardID string) string {
-	for _, c := range cfg.Cards {
-		if c.ID == cardID {
-			return c.Name
-		}
-	}
+// FormatCardName returns a human-readable label for a card key (ENTITY:PERSON).
+func FormatCardName(cardID string) string {
 	if cardID == Unassigned {
 		return "Unassigned"
 	}
-	return fmt.Sprintf("(%s)", cardID)
+	return cardID
 }

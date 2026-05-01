@@ -7,20 +7,17 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type Card struct {
-	ID          string  `yaml:"id"`
-	Name        string  `yaml:"name"`
-	ClosingDay  *int    `yaml:"closing_day"`
+type Member struct {
+	SplitwiseID   int    `yaml:"splitwise_id"`
+	DefaultEntity string `yaml:"default_entity"`
 }
 
 type Config struct {
 	Splitwise struct {
-		GroupID    int `yaml:"group_id"`
-		MyUserID   int `yaml:"my_user_id"`
+		GroupID  int `yaml:"group_id"`
+		MyUserID int `yaml:"my_user_id"`
 	} `yaml:"splitwise"`
-	Cards               []Card         `yaml:"cards"`
-	RulesByCategory     map[string]string `yaml:"rules_by_category"`
-	OverridesByExpenseID map[int]string   `yaml:"overrides_by_expense_id"`
+	Members []Member `yaml:"members"`
 }
 
 func LoadConfig(path string) (*Config, error) {
